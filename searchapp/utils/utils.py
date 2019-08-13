@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import datetime
 from random import sample
 
+
 def default_to_regular(d):
     """
         This function converts a nested defaultdict to a dict
@@ -15,6 +16,7 @@ def default_to_regular(d):
     if isinstance(d, defaultdict):
         d = {k: default_to_regular(v) for k, v in d.items()}
     return d
+
 
 def convert_marker_data(marker_path, subject_breakup):
     """
@@ -75,20 +77,23 @@ def convert_marker_data(marker_path, subject_breakup):
             question_type = header_row[question_type_start_row].value
             while (question_type != None):
                 #  Incase you get a string like '1A' as your question type, thats fine, else if you get a float like 2.0, convert to '2'
-                question_type = question_type if type(question_type) == str else str(int(question_type))
+                question_type = question_type if type(
+                    question_type) == str else str(int(question_type))
                 total_questions, questions_to_attempt = subject_breakup[question_type]
                 questions_of_given_type = []
                 for i in range(question_type_start_row, question_type_start_row + total_questions):
                     question_number = i - question_type_start_row + 1
                     chapter_number = int(chapter_row[i].value)
                     marks_secured = row[i].value or 0.0
-                    questions_of_given_type.append((marks_secured, question_number, chapter_number))
+                    questions_of_given_type.append(
+                        (marks_secured, question_number, chapter_number))
                 questions_of_given_type.sort(key=lambda x: x[0], reverse=True)
                 questions_of_given_type = questions_of_given_type[:questions_to_attempt]
                 student_to_answer[student][question_type] = questions_of_given_type
                 question_type_start_row += total_questions
                 question_type = header_row[question_type_start_row].value
     return student_to_answer, list(set([int(val.value) for val in chapter_row if type(val.value) == type(1.0)]))
+
 
 def get_allowed_questions(data, allowed_qtypes, allowed_chapters):
     """
@@ -109,9 +114,11 @@ def get_allowed_questions(data, allowed_qtypes, allowed_chapters):
         qtypes = data[student]
         for qtype in qtypes:
             if qtype in allowed_qtypes:
-                updated_data[student][qtype] = [x for x in qtypes[qtype] if x[2] in allowed_chapters]
+                updated_data[student][qtype] = [
+                    x for x in qtypes[qtype] if x[2] in allowed_chapters]
     updated_data = default_to_regular(updated_data)
     return updated_data
+
 
 def get_customized_paper(marker_data):
     """
@@ -130,20 +137,24 @@ def get_customized_paper(marker_data):
         lowest_scored_chapters = []
         for question_type in student_data:
             results_per_questiontype = student_data[question_type]
-            ratio_array = [(x[0]/float(question_type[0]), x[2]) for x in results_per_questiontype]
+            ratio_array = [(x[0]/float(question_type[0]), x[2])
+                           for x in results_per_questiontype]
             for result in ratio_array:
                 # if he/she scored less that 70% for that question, add that to the list of chapters to prepare
                 if result[0] < 0.70:
                     lowest_scored_chapters.append(result)
         lowest_scored_chapters.sort(key=lambda x: x[0])
-        student_to_chapter[student] = list(set([x[1] for x in lowest_scored_chapters]))
-        student_to_chapter[student] = sample(student_to_chapter[student], min(3, len(student_to_chapter[student])))
+        student_to_chapter[student] = list(
+            set([x[1] for x in lowest_scored_chapters]))
+        student_to_chapter[student] = sample(
+            student_to_chapter[student], min(3, len(student_to_chapter[student])))
     return student_to_chapter
 
 
 def get_type_and_weightage(question_type):
     weightage = int(question_type[0])
-    qtype = ord(question_type[1].lower()) - ord('a') + 1 if len(question_type) == 2 else 1
+    qtype = ord(question_type[1].lower()) - \
+        ord('a') + 1 if len(question_type) == 2 else 1
     return weightage, qtype
 
 
@@ -178,7 +189,8 @@ def convert_question_bank(question_bank_path):
 
     """
     question_bank = op.load_workbook(question_bank_path).worksheets[0]
-    board_to_grade_to_subject_to_chapter_to_question = defaultdict(lambda: (defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: list([])))))))
+    question_bank_dict = defaultdict(lambda: (defaultdict(lambda: defaultdict(
+        lambda: defaultdict(lambda: defaultdict(lambda: list([])))))))
     row_no = -1
     for row in question_bank.rows:
         row_no += 1
@@ -192,13 +204,15 @@ def convert_question_bank(question_bank_path):
                 chapter_no = int(row[3].value)
                 chapter_name = row[4].value
                 question_type = row[5].value
-                question_type = str(int(question_type)) if (type(question_type) == type(1.0) or type(question_type) == type(1)) else question_type.lower()
+                question_type = str(int(question_type)) if (type(question_type) == type(
+                    1.0) or type(question_type) == type(1)) else question_type.lower()
                 question_text = row[6].value
                 question_source = row[7].value
-                board_to_grade_to_subject_to_chapter_to_question[board][grade][subject][(chapter_no, chapter_name)][question_type].append((question_text, question_source))
+                question_bank_dict[board][grade][subject][(
+                    chapter_no, chapter_name)][question_type].append((question_text, question_source))
             except Exception as e:
                 break
-    return board_to_grade_to_subject_to_chapter_to_question
+    return question_bank_dict
 
 
 def generate_dummy_tracker(subject_name, subject_split, split_type_mapping):
@@ -232,7 +246,8 @@ def generate_dummy_tracker(subject_name, subject_split, split_type_mapping):
     dummy_worksheet["A2"].font = bold_style
 
     thin = op.styles.Side(border_style="thin", color="000000")
-    styles_border = op.styles.Border(top=thin, left=thin, right=thin, bottom=thin)
+    styles_border = op.styles.Border(
+        top=thin, left=thin, right=thin, bottom=thin)
     styles_fillPeach = op.styles.PatternFill("solid", fgColor="fff2cc")
     styles_fillGreen = op.styles.PatternFill("solid", fgColor="e2efda")
     styles_centerAlignment = op.styles.Alignment(horizontal='center')
@@ -259,11 +274,13 @@ def generate_dummy_tracker(subject_name, subject_split, split_type_mapping):
         for i in range(start_position, end_position):
             dummy_worksheet["{}2".format(char_array[i])] = 0
             dummy_worksheet["{}2".format(char_array[i])].border = styles_border
-            dummy_worksheet["{}2".format(char_array[i])].fill = styles_currentFill
+            dummy_worksheet["{}2".format(
+                char_array[i])].fill = styles_currentFill
 
             dummy_worksheet["{}3".format(char_array[i])] = 0
             dummy_worksheet["{}3".format(char_array[i])].border = styles_border
-            dummy_worksheet["{}3".format(char_array[i])].fill = styles_currentFill
+            dummy_worksheet["{}3".format(
+                char_array[i])].fill = styles_currentFill
 
     return dummy_workbook
 
